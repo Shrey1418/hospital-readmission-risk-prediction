@@ -124,3 +124,9 @@ weighted avg       0.87      0.89      0.83     19869
 [2026-10-08 12:18:04,734] 63 root - INFO - success_rate=1.0: best threshold=0.1, net savings=2,032,600, call-everyone=1,683,700, call-no-one=0
 [2026-10-08 12:18:04,751] 70 root - INFO - Headline (success_rate=0.3): threshold=0.3, net savings=55200
 [2026-10-08 12:18:04,754] 16 root - INFO - Object saved at artifacts/threshold.pkl
+[2026-10-08 12:37:49,658] 30 root - INFO - Prediction generated for 1 record(s)
+[2026-10-08 12:37:49,662] 62 root - INFO - API prediction: prob=0.2075, decision=STANDARD DISCHARGE
+[2026-10-08 12:40:02,624] 30 root - INFO - Prediction generated for 1 record(s)
+[2026-10-08 12:40:02,629] 62 root - INFO - API prediction: prob=0.1133, decision=STANDARD DISCHARGE
+[2026-10-08 13:36:30,050] 30 root - INFO - Prediction generated for 1 record(s)
+[2026-10-08 13:36:30,053] 62 root - INFO - API prediction: prob=0.0726, decision=STANDARD DISCHARGE
