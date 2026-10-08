@@ -7,7 +7,8 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from src.exception import CustomException
 from src.logger import logging
-from src.utils import save_object
+from src.utils import save_object, categorize_icd9
+
 
 class DataTransformation:
     def __init__(self):
@@ -16,7 +17,7 @@ class DataTransformation:
     def drop_unusable_columns(self, df):
         try:
             cols_to_drop = ["weight", "payer_code", "medical_specialty",
-                             "encounter_id", "patient_nbr", "readmitted"]
+                            "encounter_id", "patient_nbr", "readmitted"]
             df = df.drop(columns=[c for c in cols_to_drop if c in df.columns])
             logging.info(f"Dropped unusable columns: {cols_to_drop}")
             return df
@@ -25,33 +26,6 @@ class DataTransformation:
 
     def bucket_diagnosis_codes(self, df):
         try:
-            def categorize_icd9(code):
-                try:
-                    code = str(code)
-                    if code.startswith(("V", "E")):
-                        return "other"
-                    code_num = float(code)
-                    if 390 <= code_num <= 459 or code_num == 785:
-                        return "circulatory"
-                    elif 460 <= code_num <= 519 or code_num == 786:
-                        return "respiratory"
-                    elif 520 <= code_num <= 579 or code_num == 787:
-                        return "digestive"
-                    elif code_num == 250:
-                        return "diabetes"
-                    elif 800 <= code_num <= 999:
-                        return "injury"
-                    elif 710 <= code_num <= 739:
-                        return "musculoskeletal"
-                    elif 580 <= code_num <= 629 or code_num == 788:
-                        return "genitourinary"
-                    elif 140 <= code_num <= 239:
-                        return "neoplasms"
-                    else:
-                        return "other"
-                except (ValueError, TypeError):
-                    return "unknown"
-
             for col in ["diag_1", "diag_2", "diag_3"]:
                 df[f"{col}_category"] = df[col].apply(categorize_icd9)
             df = df.drop(columns=["diag_1", "diag_2", "diag_3"])
@@ -75,10 +49,33 @@ class DataTransformation:
         except Exception as e:
             raise CustomException(e, sys)
 
+    def get_preprocessor_object(self, numeric_features, categorical_features):
+        try:
+            num_pipeline = Pipeline([
+                ("imputer", SimpleImputer(strategy="median")),
+                ("scaler", StandardScaler())
+            ])
+            cat_pipeline = Pipeline([
+                ("imputer", SimpleImputer(strategy="most_frequent")),
+                ("encoder", OneHotEncoder(handle_unknown="ignore"))
+            ])
+            preprocessor = ColumnTransformer(
+                [
+                    ("num_pipeline", num_pipeline, numeric_features),
+                    ("cat_pipeline", cat_pipeline, categorical_features)
+                ],
+                sparse_threshold=0
+            )
+            return preprocessor
+        except Exception as e:
+            raise CustomException(e, sys)
+
     def initiate_data_transformation(self, train_path, test_path):
         try:
-            train_df = pd.read_csv(train_path)
-            test_df = pd.read_csv(test_path)
+            # keep_default_na=False so the literal "None" (test not performed) stays a category;
+            # na_values=[""] so genuinely empty cells (written by to_csv for missing values) are still NaN
+            train_df = pd.read_csv(train_path, keep_default_na=False, na_values=[""], low_memory=False)
+            test_df = pd.read_csv(test_path, keep_default_na=False, na_values=[""], low_memory=False)
             logging.info(f"Read train {train_df.shape}, test {test_df.shape}")
 
             train_df = self.drop_unusable_columns(train_df)
@@ -93,14 +90,14 @@ class DataTransformation:
             target_column = "readmitted_binary"
 
             numeric_features = ["time_in_hospital", "num_lab_procedures", "num_procedures",
-                                 "num_medications", "number_outpatient", "number_emergency",
-                                 "number_inpatient", "number_diagnoses",
-                                 "Prior_Visit_Intensity", "Med_Change_Count"]
+                                "num_medications", "number_outpatient", "number_emergency",
+                                "number_inpatient", "number_diagnoses",
+                                "Prior_Visit_Intensity", "Med_Change_Count"]
             categorical_features = ["race", "gender", "age", "diag_1_category",
-                                     "diag_2_category", "diag_3_category",
-                                     "change", "diabetesMed",
-                                     "admission_type_id", "discharge_disposition_id",
-                                     "admission_source_id", "A1Cresult", "max_glu_serum"]
+                                    "diag_2_category", "diag_3_category",
+                                    "change", "diabetesMed",
+                                    "admission_type_id", "discharge_disposition_id",
+                                    "admission_source_id", "A1Cresult", "max_glu_serum"]
 
             preprocessor = self.get_preprocessor_object(numeric_features, categorical_features)
 

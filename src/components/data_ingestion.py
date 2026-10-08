@@ -1,10 +1,11 @@
-import os 
-import sys 
+import os
+import sys
 import sqlite3
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from src.exception import CustomException
 from src.logger import logging
+
 
 class DataIngestion:
     def __init__(self):
@@ -14,13 +15,13 @@ class DataIngestion:
         self.test_data_path = "artifacts/test.csv"
 
     def initiate_data_ingestion(self):
-        logging.info("Entered data ingetion method")
-
+        logging.info("Entered data ingestion method")
         try:
             df = pd.read_csv(
                 "notebooks/data/diabetic_data.csv",
                 na_values=["?"],
-                keep_default_na=False
+                keep_default_na=False,
+                low_memory=False
             )
             logging.info(f"Read raw data with shape {df.shape}")
 
@@ -41,7 +42,6 @@ class DataIngestion:
             med_cols = ["metformin", "repaglinide", "nateglinide", "chlorpropamide",
                         "glimepiride", "glipizide", "glyburide", "pioglitazone",
                         "rosiglitazone", "acarbose", "insulin"]
-
             med_change_case = " + ".join(
                 [f"CASE WHEN {col} IN ('Up','Down') THEN 1 ELSE 0 END" for col in med_cols]
             )
@@ -52,7 +52,6 @@ class DataIngestion:
                 ({med_change_case}) AS Med_Change_Count
             FROM encounters
             """
-
             df_engineered = pd.read_sql(query, conn)
             conn.close()
             logging.info("SQL feature engineering complete")
@@ -61,7 +60,6 @@ class DataIngestion:
                 df_engineered, test_size=0.2, random_state=42,
                 stratify=df_engineered["readmitted_binary"]
             )
-
             train_set.to_csv(self.train_data_path, index=False)
             test_set.to_csv(self.test_data_path, index=False)
             logging.info("Train/test split saved")
@@ -69,5 +67,5 @@ class DataIngestion:
             return self.train_data_path, self.test_data_path
 
         except Exception as e:
-            logging.error("Data Ingestion Failed")
+            logging.error("Data ingestion failed")
             raise CustomException(e, sys)

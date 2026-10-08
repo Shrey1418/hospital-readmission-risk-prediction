@@ -5,6 +5,7 @@ from src.components.model_trainer import ModelTrainer
 from src.components.model_evaluation import ModelEvaluation
 from src.exception import CustomException
 from src.logger import logging
+from src.utils import save_object
 
 if __name__ == "__main__":
     try:
@@ -27,7 +28,8 @@ if __name__ == "__main__":
         evaluator.generate_shap_summary(model, X_test, feature_names)
 
         best_threshold, best_savings = evaluator.cost_threshold_analysis(y_test, y_proba)
-        print(f"Optimal intervention threshold: {best_threshold}, net savings: {best_savings}")
+        save_object("artifacts/threshold.pkl", best_threshold)
+        print(f"Optimal intervention threshold: {best_threshold}, net savings: {best_savings:,.0f}")
 
     except Exception as e:
         raise CustomException(e, sys)
