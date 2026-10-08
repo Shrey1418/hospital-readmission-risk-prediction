@@ -31,5 +31,7 @@ if __name__ == "__main__":
         save_object("artifacts/threshold.pkl", best_threshold)
         print(f"Optimal intervention threshold: {best_threshold}, net savings: {best_savings:,.0f}")
 
+        evaluator.report_at_threshold(y_test, y_proba, best_threshold)
+
     except Exception as e:
         raise CustomException(e, sys)

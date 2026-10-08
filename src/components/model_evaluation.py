@@ -37,12 +37,35 @@ class ModelEvaluation:
             shap_values = explainer.shap_values(X_test)
             shap.summary_plot(shap_values, X_test, feature_names=feature_names, show=False)
             plt.savefig("artifacts/shap_summary.png", bbox_inches="tight")
+            plt.close()
+
+            sv = shap_values[1] if isinstance(shap_values, list) else shap_values
+            mean_abs = np.abs(sv).mean(axis=0)
+            top = sorted(zip(feature_names, mean_abs), key=lambda x: -x[1])[:10]
+            print("\nTop 10 features by mean |SHAP|:")
+            for name, val in top:
+                line = f"{name}: {val:.4f}"
+                print(line)
+                logging.info(f"SHAP top feature - {line}")
             logging.info("SHAP summary plot saved")
         except Exception as e:
             raise CustomException(e, sys)
 
-    def cost_threshold_analysis(self, y_test, y_proba, intervention_cost=200,
-                                penalty_avoided=2500, success_rate=0.3):
+    def report_at_threshold(self, y_test, y_proba, threshold):
+        try:
+            y_test = np.asarray(y_test)
+            flagged = (y_proba >= threshold).astype(int)
+            tn, fp, fn, tp = confusion_matrix(y_test, flagged).ravel()
+            precision = tp / (tp + fp) if (tp + fp) else 0.0
+            recall = tp / (tp + fn) if (tp + fn) else 0.0
+            msg = (f"At threshold {threshold}: flagged={flagged.sum()} ({flagged.mean():.1%} of patients), "
+                   f"TP={tp}, FP={fp}, FN={fn}, TN={tn}, precision={precision:.3f}, recall={recall:.3f}")
+            print(msg)
+            logging.info(msg)
+        except Exception as e:
+            raise CustomException(e, sys)
+
+    def cost_threshold_analysis(self, y_test, y_proba, intervention_cost=200, penalty_avoided=2500, success_rate=0.3):
         try:
             y_test = np.asarray(y_test)
             thresholds = [i / 100 for i in range(5, 96, 5)]
