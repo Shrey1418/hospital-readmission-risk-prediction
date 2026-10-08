@@ -4,7 +4,6 @@ scikit-learn
 xgboost
 shap
 matplotlib
-seaborn
 pyyaml
 fastapi
 uvicorn
